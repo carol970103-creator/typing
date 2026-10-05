@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>霓虹星空・打字挑戰</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    color: #fff;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(111, 90, 255, .35), transparent 28%),
+      radial-gradient(circle at 80% 15%, rgba(0, 210, 255, .25), transparent 25%),
+      linear-gradient(145deg, #080b2a, #10164a 45%, #24134f);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,.9) 1px, transparent 1px),
+      radial-gradient(circle, rgba(255,255,255,.5) 1px, transparent 1px);
+    background-size: 80px 80px, 130px 130px;
+    background-position: 10px 20px, 50px 80px;
+    opacity: .35;
+  }
+
+  .game {
+    width: min(1100px, 94vw);
+    height: 94vh;
+    margin: 3vh auto;
+    position: relative;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 28px;
+    overflow: hidden;
+    background: rgba(8, 12, 47, .72);
+    box-shadow: 0 25px 80px rgba(0,0,0,.45), inset 0 0 50px rgba(125,100,255,.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+  }
+  .screen.active { display: flex; }
+
+  /* 首頁 */
+  #home {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+    background:
+      linear-gradient(to top, rgba(8,10,38,.95), rgba(8,10,38,.15)),
+      radial-gradient(circle at 50% 65%, rgba(127, 92, 255, .32), transparent 35%);
+  }
+
+  .cat {
+    font-size: 64px;
+    filter: drop-shadow(0 0 18px rgba(167,137,255,.8));
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    50% { transform: translateY(-12px); }
+  }
+
+  h1 {
+    margin: 8px 0 6px;
+    font-size: clamp(42px, 7vw, 78px);
+    letter-spacing: 8px;
+    text-shadow: 0 0 12px #8f75ff, 0 0 35px #5968ff;
+  }
+
+  .subtitle {
+    color: #d9ddff;
+    font-size: 18px;
+    margin-bottom: 28px;
+  }
+
+  button {
+    border: 0;
+    cursor: pointer;
+    color: white;
+    font: inherit;
+  }
+
+  .start-btn {
+    padding: 15px 44px;
+    border-radius: 999px;
+    font-size: 21px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #7367ff, #a76cff, #5fcaff);
+    box-shadow: 0 0 25px rgba(116,105,255,.65);
+    transition: .2s;
+  }
+  .start-btn:hover { transform: translateY(-3px) scale(1.03); }
+
+  .tips {
+    margin-top: 28px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .tip {
+    padding: 8px 14px;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 999px;
+    background: rgba(255,255,255,.06);
+    color: #cbd2ff;
+    font-size: 14px;
+  }
+
+  /* 遊戲區 */
+  #play { padding: 18px; }
+  .hud {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 12px;
+    align-items: center;
+    z-index: 20;
+  }
+  .hud-box {
+    padding: 9px 14px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    color: #e9ebff;
+  }
+  .hud strong { color: #fff; }
+  .stage-progress {
+    height: 7px;
+    margin-top: 7px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.12);
+    overflow: hidden;
+  }
+  #progress {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg,#65dfff,#b57aff);
+    box-shadow: 0 0 12px #7e9cff;
+    transition: width .15s;
+  }
+
+  .arena {
+    position: relative;
+    flex: 1;
+    margin-top: 12px;
+    overflow: hidden;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,.13);
+    background:
+      linear-gradient(to top, rgba(8,10,39,.98) 0%, rgba(13,20,65,.65) 55%, rgba(14,25,72,.25)),
+      radial-gradient(circle at 50% 20%, rgba(96,91,255,.2), transparent 40%);
+  }
+
+  .city {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 19%;
+    background:
+      linear-gradient(to top, #070a28, transparent),
+      repeating-linear-gradient(90deg,
+        #090d31 0 35px, #11184b 35px 70px, #080b2c 70px 105px);
+    opacity: .9;
+  }
+  .city::after {
+    content: "";
+    position: absolute;
+    inset: 35% 0 0;
+    background: repeating-linear-gradient(90deg,
+      transparent 0 17px, rgba(255,221,115,.45) 17px 20px, transparent 20px 38px);
+    opacity: .45;
+  }
+
+  .lane {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .letter {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: 900;
+    user-select: none;
+    color: #fff;
+    background: radial-gradient(circle at 35% 30%, #fff, #7ccfff 8%, #596eff 45%, #7f3dff 100%);
+    border: 2px solid rgba(255,255,255,.8);
+    box-shadow: 0 0 13px #66cfff, 0 0 30px rgba(115,90,255,.85);
+    text-shadow: 0 2px 6px rgba(0,0,0,.4);
+    animation: pulse 1.2s ease-in-out infinite alternate;
+    z-index: 5;
+  }
+  .letter::after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.22);
+  }
+  @keyframes pulse {
+    to { transform: scale(1.06); }
+  }
+
+  .letter.hit {
+    animation: hit .28s ease-out forwards;
+  }
+  @keyframes hit {
+    to { transform: scale(1.8); opacity: 0; filter: brightness(2); }
+  }
+
+  .keyboard {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+    padding: 9px;
+    border-radius: 15px;
+    background: rgba(5,8,31,.75);
+    border: 1px solid rgba(255,255,255,.13);
+    z-index: 15;
+  }
+  .key {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.07);
+    color: #cdd3ff;
+    font-weight: 800;
+    transition: .08s;
+  }
+  .key.active {
+    transform: translateY(-4px);
+    background: rgba(111,195,255,.45);
+    box-shadow: 0 0 18px #70cfff;
+    color: #fff;
+  }
+
+  .life {
+    display: flex;
+    gap: 3px;
+  }
+  .heart { color: #ff7db4; text-shadow: 0 0 10px #ff4d98; }
+  .heart.off { color: #40456e; text-shadow: none; }
+
+  /* 通知 */
+  .toast {
+    position: absolute;
+    left: 50%;
+    top: 48%;
+    transform: translate(-50%, -50%) scale(.7);
+    opacity: 0;
+    z-index: 50;
+    pointer-events: none;
+    font-size: clamp(30px, 6vw, 68px);
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 10px #fff, 0 0 35px #7f75ff, 0 0 70px #ff71ca;
+    white-space: nowrap;
+  }
+  .toast.show { animation: toast .9s ease forwards; }
+  @keyframes toast {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(.5); }
+    20% { opacity: 1; transform: translate(-50%,-50%) scale(1.05); }
+    75% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-65%) scale(1.15); }
+  }
+
+  /* 煙火 */
+  .firework {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    z-index: 45;
+    pointer-events: none;
+    background: white;
+    box-shadow: 0 0 10px #fff, 0 0 30px #8b7dff;
+  }
+  .spark {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px currentColor;
+    animation: spark 1s ease-out forwards;
+  }
+  @keyframes spark {
+    to {
+      transform: translate(var(--x), var(--y)) scale(.1);
+      opacity: 0;
+    }
+  }
+
+  /* 結果 */
+  #result {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+  }
+  .result-card {
+    width: min(560px, 92%);
+    padding: 35px;
+    border-radius: 28px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 20px 70px rgba(0,0,0,.3);
+  }
+  .result-card h2 {
+    font-size: 42px;
+    margin: 5px 0 22px;
+    text-shadow: 0 0 25px #9a77ff;
+  }
+  .score-big {
+    font-size: 64px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 30px #64d9ff;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 10px;
+    margin: 22px 0;
+  }
+  .stat {
+    padding: 13px 8px;
+    background: rgba(0,0,0,.2);
+    border-radius: 14px;
+  }
+  .stat b { display:block; font-size: 22px; }
+  .again {
+    padding: 12px 32px;
+    border-radius: 999px;
+    background: linear-gradient(90deg,#6e71ff,#ba70ff);
+    font-weight: 800;
+  }
+
+  .paused {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: none;
+    place-items: center;
+    background: rgba(4,6,25,.75);
+    backdrop-filter: blur(7px);
+  }
+  .paused.show { display: grid; }
+  .paused-box {
+    text-align: center;
+    padding: 30px;
+  }
+
+  @media (max-width: 700px) {
+    .game { width: 100%; height: 100vh; margin: 0; border-radius: 0; }
+    .hud { grid-template-columns: 1fr 1fr; }
+    .hud-box:first-child { grid-column: 1 / -1; }
+    .keyboard { gap: 2px; }
+    .key { width: 29px; height: 34px; font-size: 12px; }
+    .letter { width: 48px; height: 48px; font-size: 21px; }
+    h1 { letter-spacing: 3px; }
+  }
+</style>
+</head>
+
+<body>
+<div class="game">
+
+  <section id="home" class="screen active">
+    <div class="cat">🐱🎧</div>
+    <h1>打字挑戰</h1>
+    <div class="subtitle">跟著字母的節奏，打出你的速度！</div>
+    <button class="start-btn" id="startBtn">▶ 開始遊戲</button>
+    <div class="tips">
+      <span class="tip">⌨️ 按正確字母消除</span>
+      <span class="tip">⚡ 越後面越快</span>
+      <span class="tip">🎆 每關都有煙火</span>
+    </div>
+  </section>
+
+  <section id="play" class="screen">
+    <div class="hud">
+      <div class="hud-box">
+        <div>⭐ 第 <strong id="stageText">1</strong> / 4 階段</div>
+        <div class="stage-progress"><div id="progress"></div></div>
+      </div>
+      <div class="hud-box">分數 <strong id="score">0</strong></div>
+      <div class="hud-box">連擊 <strong id="combo">0</strong></div>
+      <div class="hud-box">
+        <div class="life" id="life">♥ ♥ ♥</div>
+      </div>
+    </div>
+
+    <div class="arena" id="arena">
+      <div class="lane" id="lane"></div>
+      <div class="city"></div>
+      <div class="toast" id="toast"></div>
+
+      <div class="keyboard" id="keyboard">
+        <div class="key">A</div><div class="key">S</div><div class="key">D</div>
+        <div class="key">F</div><div class="key">G</div><div class="key">H</div>
+        <div class="key">J</div><div class="key">K</div><div class="key">L</div>
+      </div>
+
+      <div class="paused" id="paused">
+        <div class="paused-box">
+          <div style="font-size:48px">⏸️</div>
+          <h2>遊戲暫停</h2>
+          <button class="again" id="resumeBtn">繼續遊戲</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="result" class="screen">
+    <div class="result-card">
+      <div style="font-size:60px">🎆</div>
+      <h2 id="resultTitle">恭喜過關！</h2>
+      <div class="score-big" id="finalScore">0</div>
+      <div>最終分數</div>
+      <div class="stats">
+        <div class="stat"><b id="finalHits">0</b>成功擊中字母</div>
+        <div class="stat"><b id="finalMiss">0</b>漏掉字母</div>
+        <div class="stat"><b id="finalCombo">0</b>最高連擊</div>
+      </div>
+      <button class="again" id="againBtn">🔄 再玩一次</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const stages = [
+  { speed: 55, spawn: 1100, need: 12, label: "慢速入門" },
+  { speed: 75, spawn: 900,  need: 16, label: "逐漸加快" },
+  { speed: 100, spawn: 720, need: 20, label: "高速挑戰" },
+  { speed: 135, spawn: 540, need: 25, label: "最終挑戰" }
+];
+
+const letters = "ASDFGHJKL";
+let stage = 0;
+let score = 0;
+let hits = 0;
+let misses = 0;
+let combo = 0;
+let maxCombo = 0;
+let lives = 3;
+let completed = 0;
+let activeLetters = [];
+let lastTime = 0;
+let spawnTimer = 0;
+let running = false;
+let paused = false;
+let stageCompleteLock = false;
+
+const home = document.getElementById("home");
+const play = document.getElementById("play");
+const result = document.getElementById("result");
+const arena = document.getElementById("arena");
+const lane = document.getElementById("lane");
+const toast = document.getElementById("toast");
+const scoreEl = document.getElementById("score");
+const comboEl = document.getElementById("combo");
+const stageText = document.getElementById("stageText");
+const progressEl = document.getElementById("progress");
+const lifeEl = document.getElementById("life");
+const pausedEl = document.getElementById("paused");
+
+function showScreen(screen) {
+  [home, play, result].forEach(s => s.classList.remove("active"));
+  screen.classList.add("active");
+}
+
+function resetGame() {
+  stage = 0; score = 0; hits = 0; misses = 0; combo = 0; maxCombo = 0;
+  lives = 3; completed = 0; activeLetters = [];
+  lane.innerHTML = "";
+  updateHUD();
+}
+
+function startGame() {
+  resetGame();
+  running = true;
+  paused = false;
+  stageCompleteLock = false;
+  showScreen(play);
+  showToast("Stage 1 · 慢速入門");
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function spawnLetter() {
+  if (!running || paused || stageCompleteLock) return;
+
+  const el = document.createElement("div");
+  el.className = "letter";
+  const char = letters[Math.floor(Math.random() * letters.length)];
+  el.textContent = char;
+
+  const maxX = Math.max(10, arena.clientWidth - 70);
+  const x = 10 + Math.random() * maxX;
+  el.style.left = x + "px";
+  el.style.top = "-65px";
+
+  const item = {
+    el,
+    char,
+    y: -65,
+    speed: stages[stage].speed * (0.9 + Math.random() * 0.25)
+  };
+
+  activeLetters.push(item);
+  lane.appendChild(el);
+}
+
+function removeItem(item, hit = false) {
+  const index = activeLetters.indexOf(item);
+  if (index !== -1) activeLetters.splice(index, 1);
+
+  if (hit) {
+    item.el.classList.add("hit");
+    setTimeout(() => item.el.remove(), 260);
+  } else {
+    item.el.remove();
+  }
+}
+
+function handleKey(key) {
+  key = key.toUpperCase();
+  if (!running || paused || stageCompleteLock) return;
+
+  const keyEl = [...document.querySelectorAll(".key")].find(k => k.textContent === key);
+  if (keyEl) {
+    keyEl.classList.add("active");
+    setTimeout(() => keyEl.classList.remove("active"), 100);
+  }
+
+  const target = activeLetters
+    .filter(item => item.char === key)
+    .sort((a,b) => b.y - a.y)[0];
+
+  if (target) {
+    hits++;
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+    score += 10 + Math.min(combo, 20);
+    completed++;
+    removeItem(target, true);
+    updateHUD();
+    if (completed >= stages[stage].need) nextStage();
+  }
+}
+
+function miss(item) {
+  removeItem(item);
+  misses++;
+  combo = 0;
+  lives--;
+  updateHUD();
+
+  if (lives <= 0) endGame(false);
+}
+
+function nextStage() {
+  if (stageCompleteLock) return;
+  stageCompleteLock = true;
+
+  activeLetters.forEach(i => i.el.remove());
+  activeLetters = [];
+  fireworks();
+
+  if (stage < stages.length - 1) {
+    showToast("🎆 恭喜過關！");
+    setTimeout(() => {
+      stage++;
+      completed = 0;
+      stageCompleteLock = false;
+      updateHUD();
+      showToast(`Stage ${stage + 1} · ${stages[stage].label}`);
+    }, 1500);
+  } else {
+    showToast("🎆 全部通關！");
+    setTimeout(() => endGame(true), 1700);
+  }
+}
+
+function updateHUD() {
+  stageText.textContent = stage + 1;
+  scoreEl.textContent = score;
+  comboEl.textContent = combo;
+  progressEl.style.width = Math.min(100, completed / stages[stage].need * 100) + "%";
+
+  lifeEl.innerHTML = "";
+  for (let i = 0; i < 3; i++) {
+    const span = document.createElement("span");
+    span.className = "heart" + (i >= lives ? " off" : "");
+    span.textContent = "♥";
+    lifeEl.appendChild(span);
+  }
+}
+
+function showToast(text) {
+  toast.textContent = text;
+  toast.classList.remove("show");
+  void toast.offsetWidth;
+  toast.classList.add("show");
+}
+
+function fireworks() {
+  const colors = ["#74e8ff", "#b58cff", "#ff7dcc", "#ffe07b", "#83ffb2"];
+
+  for (let burst = 0; burst < 7; burst++) {
+    setTimeout(() => {
+      const fw = document.createElement("div");
+      fw.className = "firework";
+      fw.style.left = (15 + Math.random() * 70) + "%";
+      fw.style.top = (12 + Math.random() * 45) + "%";
+      fw.style.color = colors[Math.floor(Math.random() * colors.length)];
+      arena.appendChild(fw);
+
+      for (let i = 0; i < 28; i++) {
+        const s = document.createElement("span");
+        s.className = "spark";
+        const angle = Math.PI * 2 * i / 28;
+        const distance = 45 + Math.random() * 95;
+        s.style.setProperty("--x", Math.cos(angle) * distance + "px");
+        s.style.setProperty("--y", Math.sin(angle) * distance + "px");
+        s.style.color = colors[Math.floor(Math.random() * colors.length)];
+        fw.appendChild(s);
+      }
+
+      setTimeout(() => fw.remove(), 1100);
+    }, burst * 130);
+  }
+}
+
+function endGame(win) {
+  running = false;
+  paused = false;
+  pausedEl.classList.remove("show");
+  activeLetters.forEach(i => i.el.remove());
+  activeLetters = [];
+
+  document.getElementById("resultTitle").textContent = win ? "🎆 恭喜過關！" : "💫 再接再厲！";
+  document.getElementById("finalScore").textContent = score;
+  document.getElementById("finalHits").textContent = hits;
+  document.getElementById("finalMiss").textContent = misses;
+  document.getElementById("finalCombo").textContent = maxCombo;
+
+  showScreen(result);
+  if (win) fireworks();
+}
+
+function loop(now) {
+  if (!running) return;
+
+  const dt = Math.min(40, now - lastTime);
+  lastTime = now;
+
+  if (!paused && !stageCompleteLock) {
+    spawnTimer += dt;
+    if (spawnTimer >= stages[stage].spawn) {
+      spawnTimer = 0;
+      spawnLetter();
+    }
+
+    const bottom = arena.clientHeight - 80;
+    activeLetters.slice().forEach(item => {
+      item.y += item.speed * dt / 1000;
+      item.el.style.top = item.y + "px";
+
+      if (item.y > bottom) miss(item);
+    });
+  }
+
+  requestAnimationFrame(loop);
+}
+
+function togglePause() {
+  if (!running) return;
+  paused = !paused;
+  pausedEl.classList.toggle("show", paused);
+}
+
+document.getElementById("startBtn").addEventListener("click", startGame);
+document.getElementById("againBtn").addEventListener("click", startGame);
+document.getElementById("resumeBtn").addEventListener("click", togglePause);
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    togglePause();
+    return;
+  }
+  if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key);
+});
+
+updateHUD();
+</script>
+</body>
+</html>
